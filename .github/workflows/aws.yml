@@ -94,6 +94,6 @@ jobs:
         service: ${{ env.ECS_SERVICE }}
         cluster: ${{ env.ECS_CLUSTER }}
         wait-for-service-stability: true
-        codedeploy-appspec: appspec.json
+        codedeploy-appspec: appspec.yml
         codedeploy-application: AppECS-cicdTest-helloworld
         codedeploy-deployment-group: DgpECS-cicdTest-helloworld
