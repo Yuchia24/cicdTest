@@ -52,38 +52,7 @@
   "placementConstraints": [],
   "memory": "128",
   "taskRoleArn": "arn:aws:iam::234232853477:role/ecsTaskExecutionRole",
-  "compatibilities": [
-    "EXTERNAL",
-    "EC2"
-  ],
-  "taskDefinitionArn": "arn:aws:ecs:ap-northeast-1:234232853477:task-definition/helloworld:3",
   "family": "helloworld",
-  "requiresAttributes": [
-    {
-      "targetId": null,
-      "targetType": null,
-      "value": null,
-      "name": "com.amazonaws.ecs.capability.ecr-auth"
-    },
-    {
-      "targetId": null,
-      "targetType": null,
-      "value": null,
-      "name": "com.amazonaws.ecs.capability.docker-remote-api.1.21"
-    },
-    {
-      "targetId": null,
-      "targetType": null,
-      "value": null,
-      "name": "com.amazonaws.ecs.capability.task-iam-role"
-    },
-    {
-      "targetId": null,
-      "targetType": null,
-      "value": null,
-      "name": "ecs.capability.execution-role-ecr-pull"
-    }
-  ],
   "pidMode": null,
   "requiresCompatibilities": [
     "EC2"
@@ -91,8 +60,6 @@
   "networkMode": "bridge",
   "runtimePlatform": null,
   "cpu": "128",
-  "revision": 3,
-  "status": "ACTIVE",
   "inferenceAccelerators": null,
   "proxyConfiguration": null,
   "volumes": []
