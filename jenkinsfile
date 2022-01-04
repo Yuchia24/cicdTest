@@ -9,11 +9,12 @@ pipeline
     {
         VERSION = 'latest'
         PROJECT = 'cicdtest'
-        IMAGE = 'cicdtest:latest'
-        ECRURL = 'http://234232853477.dkr.ecr.ap-northeast-1.amazonaws.com/helloworld'
-        ECRCRED = 'ecr:ap-norhteast-1:tap_ecr'
-        ECRURI = '234232853477.dkr.ecr.ap-northeast-1.amazonaws.com/cicdtest'
         ECRIMAGE = '234232853477.dkr.ecr.ap-northeast-1.amazonaws.com/cicdtest:latest'
+        //因為 Jenkins 沒安裝 ECR plugin，所以先不用以下兩個變數
+        // ECRURL = 'http://234232853477.dkr.ecr.ap-northeast-1.amazonaws.com/cicdtest'
+        // ECRCRED = 'ecr:ap-norhteast-1:tap_ecr'
+        ECRURI = '234232853477.dkr.ecr.ap-northeast-1.amazonaws.com/cicdtest'
+        ECRIMAGEDEV = '234232853477.dkr.ecr.ap-northeast-1.amazonaws.com/cicdtest:dev'
     }
     stages
     {
@@ -24,15 +25,11 @@ pipeline
                 script 
                 {
                     // calculate GIT lastest commit short-hash
-                    gitCommitHash = sh(returnStdout: true, script: 'git log -1 --format=%h').trim()
-                    // shortCommitHash = gitCommitHash.take(7)
+                    gitCommitShortHash = sh(returnStdout: true, script: 'git log -1 --format=%h').trim()
                     // calculate a sample version tag
-                    VERSION = gitCommitHash
-                    // update ECRCRED value
-                    ECRCRED = sh(returnStdout: true, script: 'aws ecr get-login-password --region ap-northeast-1')
+                    VERSION = gitCommitShortHash
                     // set the build display name
                     currentBuild.displayName = "#${BUILD_ID}-${VERSION}"
-                    IMAGE = "$PROJECT:$VERSION"
                     ECRIMAGE = "$ECRURI:$VERSION"
                 }
             }
@@ -44,7 +41,7 @@ pipeline
                 script
                 {
                     // Build the docker image using a Dockerfile
-                    docker.build("$IMAGE","./")
+                    docker.build("$ECRIMAGE","./")
                 }
             }
         }
@@ -57,11 +54,13 @@ pipeline
                     // login to ECR - for now it seems that that the ECR Jenkins plugin is not performing the login as expected. I hope it will in the future.
                     // Push the Docker image to ECR
                     sh 'aws ecr get-login-password --region ap-northeast-1 | docker login --username AWS --password-stdin 234232853477.dkr.ecr.ap-northeast-1.amazonaws.com'
-                    sh "docker tag $IMAGE  $ECRURI:$VERSION"
+                    sh "docker tag $ECRIMAGE  $ECRIMAGEDEV"
                     sh "docker push $ECRIMAGE"
+                    sh "docker push $ECRIMAGEDEV"
+                    // 因為 Jenkins 沒安裝 ECR plugin，所以先不用以下指令推版
                     // docker.withRegistry(ECRURL, ECRCRED)
                     // {
-                    //     docker.image(IMAGE).push()
+                    //     docker.image(ECRIMAGE).push()
                     // }
                 }
             }
