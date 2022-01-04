@@ -1,0 +1,77 @@
+node {
+    checkout scm
+
+    docker.withRegistry('234232853477.dkr.ecr.ap-northeast-1.amazonaws.com/helloworld', ) {
+
+        def customImage = docker.build("cicdtest:${git log -1 --format=%h}")
+
+        /* Push the container to the custom Registry */
+        customImage.push()
+    }
+}
+
+
+pipeline
+{
+    options
+    {
+        buildDiscarder(logRotator(numToKeepStr: '3'))
+    }
+    agent any
+    environment 
+    {
+        VERSION = 'latest'
+        PROJECT = 'cicdtest'
+        IMAGE = 'cicdtest:latest'
+        ECRURL = 'http://234232853477.dkr.ecr.ap-northeast-1.amazonaws.com/helloworld'
+        ECRCRED = 'ecr:ap-norhteast-1:tap_ecr'
+    }
+    stages
+    {
+        stage('Build preparations')
+        {
+            steps
+            {
+                script 
+                {
+                    // calculate GIT lastest commit short-hash
+                    gitCommitHash = sh(returnStdout: true, script: 'git log -1 --format=%h').trim()
+                    // shortCommitHash = gitCommitHash.take(7)
+                    // calculate a sample version tag
+                    VERSION = gitCommitHash
+                    // update ECRCRED value
+                    ECRCRED = sh(returnStdout: true, script: 'aws ecr get-login-password --region ap-northeast-1')
+                    // set the build display name
+                    currentBuild.displayName = "#${BUILD_ID}-${VERSION}"
+                    IMAGE = "$PROJECT:$VERSION"
+                }
+            }
+        }
+        stage('Docker build')
+        {
+            steps
+            {
+                script
+                {
+                    // Build the docker image using a Dockerfile
+                    docker.build("$IMAGE","./")
+                }
+            }
+        }
+        stage('Docker push')
+        {
+            steps
+            {
+                script
+                {
+                    // login to ECR - for now it seems that that the ECR Jenkins plugin is not performing the login as expected. I hope it will in the future.
+                    // Push the Docker image to ECR
+                    docker.withRegistry(ECRURL, ECRCRED)
+                    {
+                        docker.image(IMAGE).push()
+                    }
+                }
+            }
+        }
+    }
+} 
