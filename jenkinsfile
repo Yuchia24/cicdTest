@@ -15,6 +15,7 @@ pipeline
         // ECRCRED = 'ecr:ap-norhteast-1:tap_ecr'
         ECRURI = '234232853477.dkr.ecr.ap-northeast-1.amazonaws.com/cicdtest'
         ECRIMAGEDEV = '234232853477.dkr.ecr.ap-northeast-1.amazonaws.com/cicdtest:dev'
+        MESSAGE = ''
     }
     stages
     {
@@ -24,27 +25,54 @@ pipeline
             {
                 script 
                 {
-                    // calculate GIT lastest commit short-hash
-                    gitCommitShortHash = sh(returnStdout: true, script: 'git log -1 --format=%h').trim()
-                    // calculate a sample version tag
-                    VERSION = gitCommitShortHash
+                    // ECR login
+                    sh 'aws ecr get-login-password --region ap-northeast-1 | docker login --username AWS --password-stdin 234232853477.dkr.ecr.ap-northeast-1.amazonaws.com'
+                    if ( params.tag == 'dev') {
+                        // calculate GIT lastest commit short-hash
+                        gitCommitShortHash = sh(returnStdout: true, script: 'git log -1 --format=%h').trim()
+                        // calculate a sample version tag
+                        VERSION = gitCommitShortHash
+                    } else {
+                        VERSION == params.tag
+                    }
                     // set the build display name
                     currentBuild.displayName = "#${BUILD_ID}-${VERSION}"
                     ECRIMAGE = "$ECRURI:$VERSION"
+
                 }
             }
         }
+
         stage('Docker build')
         {
-            steps
+            when (params.tag == 'dev')
             {
-                script
+                steps
                 {
-                    // Build the docker image using a Dockerfile
-                    docker.build("$ECRIMAGE","./")
+                    script
+                    {
+                        // Build the docker image using a Dockerfile
+                        docker.build("$ECRIMAGE","./")
+                    }
                 }
             }
         }
+
+        stage('Docker pull')
+        {
+            when (params.tag != 'dev')
+            {
+                steps
+                {
+                    script
+                    {
+                        // Pull the docker image from ECR
+                        docker.pull("$ECRIMAGE")
+                    }
+                }
+            }
+        }
+
         stage('Docker push')
         {
             steps
@@ -53,7 +81,6 @@ pipeline
                 {
                     // login to ECR - for now it seems that that the ECR Jenkins plugin is not performing the login as expected. I hope it will in the future.
                     // Push the Docker image to ECR
-                    sh 'aws ecr get-login-password --region ap-northeast-1 | docker login --username AWS --password-stdin 234232853477.dkr.ecr.ap-northeast-1.amazonaws.com'
                     sh "docker tag $ECRIMAGE  $ECRIMAGEDEV"
                     sh "docker push $ECRIMAGE"
                     sh "docker push $ECRIMAGEDEV"
@@ -68,11 +95,25 @@ pipeline
     }
     post {
     success {
-      slackSend (channel: '#jenkins-deploy', color: '#00FF00', message: "SUCCESSFUL: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL})")
+        
+        if (params.tag == 'dev') {
+            MESSAGE = "SUCCESSFUL: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]', COMMIT: '${env.VERSION}', (${env.BUILD_URL})"
+        } else {
+            MESSAGE = "ROLLBACK SUCCESSFUL: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]', COMMIT: '${env.VERSION}', (${env.BUILD_URL})"
+        }
+
+        slackSend (channel: '#fe-cicd', color: '#00FF00', message: MESSAGE)
     }
 
     failure {
-      slackSend (channel: '#jenkins-deploy', color: '#FF0000', message: "FAILED: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL})")
+
+        if (params.tag == 'dev') {
+            MESSAGE = "FAILED: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' , COMMIT: '${env.VERSION}', (${env.BUILD_URL})"
+        } else {
+            MESSAGE = "ROLLBACK FAILED: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' , COMMIT: '${env.VERSION}', (${env.BUILD_URL})"
+        }
+
+        slackSend (channel: '#fe-cicd', color: '#FF0000', message: MESSAGE)
     }
   }
 } 
