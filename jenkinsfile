@@ -43,42 +43,37 @@ pipeline
             }
         }
 
-        stage('Docker build')
-        {
-            when (params.tag == 'dev')
-            {
-                steps
-                {
-                    script
-                    {
-                        // Build the docker image using a Dockerfile
-                        docker.build("$ECRIMAGE","./")
-                    }
+        stage('Docker build') {
+
+            when {
+                equals expected: 'dev', actual: params.tag
+            }
+
+            steps {
+                script {
+                    // Build the docker image using a Dockerfile
+                    docker.build("$ECRIMAGE","./")
                 }
             }
         }
 
-        stage('Docker pull')
-        {
-            when (params.tag != 'dev')
-            {
-                steps
-                {
-                    script
-                    {
-                        // Pull the docker image from ECR
-                        docker.pull("$ECRIMAGE")
-                    }
+        stage('Docker pull') {
+
+            when {
+                not { params.tag == 'dev' }
+            }
+
+            steps {
+                script {
+                    // Pull the docker image from ECR
+                    docker.pull("$ECRIMAGE")
                 }
             }
         }
 
-        stage('Docker push')
-        {
-            steps
-            {
-                script
-                {
+        stage('Docker push') {
+            steps {
+                script {
                     // login to ECR - for now it seems that that the ECR Jenkins plugin is not performing the login as expected. I hope it will in the future.
                     // Push the Docker image to ECR
                     sh "docker tag $ECRIMAGE  $ECRIMAGEDEV"
@@ -93,27 +88,29 @@ pipeline
             }
         }
     }
+
     post {
-    success {
         
-        if (params.tag == 'dev') {
-            MESSAGE = "SUCCESSFUL: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]', COMMIT: '${env.VERSION}', (${env.BUILD_URL})"
-        } else {
-            MESSAGE = "ROLLBACK SUCCESSFUL: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]', COMMIT: '${env.VERSION}', (${env.BUILD_URL})"
+        success {
+        
+            if (params.tag == 'dev') {
+                MESSAGE = "SUCCESSFUL: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]', COMMIT: '${env.VERSION}', (${env.BUILD_URL})"
+            } else {
+                MESSAGE = "ROLLBACK SUCCESSFUL: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]', COMMIT: '${env.VERSION}', (${env.BUILD_URL})"
+            }
+
+            slackSend (channel: '#fe-cicd', color: '#00FF00', message: MESSAGE)
         }
 
-        slackSend (channel: '#fe-cicd', color: '#00FF00', message: MESSAGE)
-    }
+        failure {
 
-    failure {
+            if (params.tag == 'dev') {
+                MESSAGE = "FAILED: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' , COMMIT: '${env.VERSION}', (${env.BUILD_URL})"
+            } else {
+                MESSAGE = "ROLLBACK FAILED: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' , COMMIT: '${env.VERSION}', (${env.BUILD_URL})"
+            }
 
-        if (params.tag == 'dev') {
-            MESSAGE = "FAILED: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' , COMMIT: '${env.VERSION}', (${env.BUILD_URL})"
-        } else {
-            MESSAGE = "ROLLBACK FAILED: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' , COMMIT: '${env.VERSION}', (${env.BUILD_URL})"
+            slackSend (channel: '#fe-cicd', color: '#FF0000', message: MESSAGE)
         }
-
-        slackSend (channel: '#fe-cicd', color: '#FF0000', message: MESSAGE)
-    }
-  }
+    } 
 } 
