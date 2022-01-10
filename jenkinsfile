@@ -42,7 +42,6 @@ pipeline
                 }
             }
         }
-
         stage('Docker build') {
 
             when {
@@ -66,7 +65,7 @@ pipeline
             steps {
                 script {
                     // Pull the docker image from ECR
-                    docker.pull("$ECRIMAGE")
+                    sh "docker push $ECRIMAGE"
                 }
             }
         }
