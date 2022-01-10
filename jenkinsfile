@@ -33,7 +33,7 @@ pipeline
                         // calculate a sample version tag
                         VERSION = gitCommitShortHash
                     } else {
-                        VERSION == params.tag
+                        VERSION = params.tag
                     }
                     // set the build display name
                     currentBuild.displayName = "#${BUILD_ID}-${VERSION}"
