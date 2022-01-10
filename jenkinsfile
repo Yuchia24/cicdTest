@@ -38,6 +38,8 @@ pipeline
                     // set the build display name
                     currentBuild.displayName = "#${BUILD_ID}-${VERSION}"
                     ECRIMAGE = "$ECRURI:$VERSION"
+                    echo "${VERSION}"
+                    echo "${ECRIMAGE}"
 
                 }
             }
