@@ -65,7 +65,7 @@ pipeline
             steps {
                 script {
                     // Pull the docker image from ECR
-                    sh "docker push $ECRIMAGE"
+                    sh "docker pull $ECRIMAGE"
                 }
             }
         }
