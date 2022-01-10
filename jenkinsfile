@@ -60,7 +60,7 @@ pipeline
         stage('Docker pull') {
 
             when {
-                not { params.tag == 'dev' }
+                not { expression { return (params.tag == 'dev')  } }
             }
 
             steps {
@@ -92,22 +92,26 @@ pipeline
     post {
         
         success {
-        
-            if (params.tag == 'dev') {
-                MESSAGE = "SUCCESSFUL: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]', COMMIT: '${env.VERSION}', (${env.BUILD_URL})"
-            } else {
-                MESSAGE = "ROLLBACK SUCCESSFUL: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]', COMMIT: '${env.VERSION}', (${env.BUILD_URL})"
+            script {
+                if (params.tag == 'dev') {
+                    MESSAGE = "SUCCESSFUL: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]', COMMIT: '${env.VERSION}', (${env.BUILD_URL})"
+                }
+                else {
+                    MESSAGE = "ROLLBACK SUCCESSFUL: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]', COMMIT: '${env.VERSION}', (${env.BUILD_URL})"
+                }
             }
 
             slackSend (channel: '#fe-cicd', color: '#00FF00', message: MESSAGE)
         }
 
         failure {
-
-            if (params.tag == 'dev') {
-                MESSAGE = "FAILED: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' , COMMIT: '${env.VERSION}', (${env.BUILD_URL})"
-            } else {
-                MESSAGE = "ROLLBACK FAILED: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' , COMMIT: '${env.VERSION}', (${env.BUILD_URL})"
+            script {
+                if (params.tag == 'dev') {
+                    MESSAGE = "FAILED: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' , COMMIT: '${env.VERSION}', (${env.BUILD_URL})"
+                }
+                else {
+                    MESSAGE = "ROLLBACK FAILED: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' , COMMIT: '${env.VERSION}', (${env.BUILD_URL})"
+                }
             }
 
             slackSend (channel: '#fe-cicd', color: '#FF0000', message: MESSAGE)
